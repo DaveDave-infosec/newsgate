@@ -4,50 +4,62 @@ interface ClaimInputProps {
   onSubmit: (claim: string) => void;
   isLoading: boolean;
   disabled?: boolean;
+  loadingIsUrl?: boolean;
 }
 
 export const ClaimInput: React.FC<ClaimInputProps> = ({
   onSubmit,
   isLoading,
   disabled = false,
+  loadingIsUrl = false,
 }) => {
-  const [claim, setClaim] = useState("");
+  const [value, setValue] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (claim.trim() && !isLoading && !disabled) {
-      onSubmit(claim.trim());
-    }
+  const handleClick = () => {
+    const trimmed = value.trim();
+    if (!trimmed || isLoading || disabled) return;
+    onSubmit(trimmed);
   };
 
-  return (
-    <form className="claim-input-form" onSubmit={handleSubmit}>
-      <div className="input-row">
-        <input
-          type="text"
-          className="claim-input"
-          placeholder="Paste a news headline or claim to verify..."
-          value={claim}
-          onChange={(e) => setClaim(e.target.value)}
-          disabled={isLoading || disabled}
-        />
-        <button
-          type="submit"
-          className="verify-btn"
-          disabled={isLoading || !claim.trim() || disabled}
-        >
-          {isLoading ? "Verifying..." : "Verify Claim"}
-        </button>
-      </div>
-      {isLoading && (
-        <div className="loading-message">
-          <div className="spinner" />
-          <div className="loading-text">
-            <span className="loading-title">Validators are reaching consensus...</span>
-            <span className="loading-sub">Multiple AI validators are independently verifying your claim via Optimistic Democracy</span>
-          </div>
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleClick();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-block">
+        <div className="loading-title">
+          {loadingIsUrl
+            ? "Fetching the source & reaching consensus..."
+            : "Validators are reaching consensus..."}
         </div>
-      )}
-    </form>
+        <div className="loading-sub">
+          {loadingIsUrl
+            ? "Contract is scraping the page text, then GenLayer's diverse LLM validators are independently judging it."
+            : "GenLayer's diverse LLM validators are independently judging your claim under Optimistic Democracy."}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="input-row">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Paste a news headline, claim, or article URL"
+        className="claim-input"
+        disabled={disabled}
+      />
+      <button
+        onClick={handleClick}
+        disabled={disabled || !value.trim()}
+        className="verify-btn"
+      >
+        Verify Claim
+      </button>
+    </div>
   );
 };

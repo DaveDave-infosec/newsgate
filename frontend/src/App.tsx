@@ -5,6 +5,8 @@ import {
   verifyClaim,
   getLastVerdict,
   getLastClaim,
+  getLastReasoning,
+  getLastSourceExcerpt,
   connectWallet,
   getConnectedAddress,
   type VerdictResult,
@@ -17,6 +19,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [pendingIsUrl, setPendingIsUrl] = useState(false);
 
   useEffect(() => {
     const existing = getConnectedAddress();
@@ -43,6 +46,9 @@ const App: React.FC = () => {
       return;
     }
 
+    const isUrl =
+      claim.trim().startsWith("http://") || claim.trim().startsWith("https://");
+    setPendingIsUrl(isUrl);
     setIsLoading(true);
     setError(null);
     setLatestResult(null);
@@ -50,17 +56,27 @@ const App: React.FC = () => {
     try {
       const txHash = await verifyClaim(claim);
 
-      const [verdict, returnedClaim] = await Promise.all([
-        getLastVerdict(),
-        getLastClaim(),
-      ]);
+      const [verdict, returnedClaim, reasoning, sourceExcerpt] =
+        await Promise.all([
+          getLastVerdict(),
+          getLastClaim(),
+          getLastReasoning(),
+          getLastSourceExcerpt(),
+        ]);
 
-      setLatestResult({ claim: returnedClaim, verdict, txHash });
+      setLatestResult({
+        claim: returnedClaim,
+        verdict,
+        reasoning,
+        sourceExcerpt,
+        txHash,
+      });
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e?.message || "Failed to verify claim.");
     } finally {
       setIsLoading(false);
+      setPendingIsUrl(false);
     }
   };
 
@@ -76,7 +92,7 @@ const App: React.FC = () => {
           AI-Verified Onchain News Authenticity Protocol
         </p>
 
-        <div className="wallet-area">
+        <div className="wallet-row">
           {walletAddress ? (
             <div className="wallet-badge">
               <span className="wallet-dot" />
@@ -84,9 +100,9 @@ const App: React.FC = () => {
             </div>
           ) : (
             <button
-              className="connect-btn"
               onClick={handleConnect}
               disabled={isConnecting}
+              className="connect-btn"
             >
               {isConnecting ? "Connecting..." : "Connect Wallet"}
             </button>
@@ -100,6 +116,7 @@ const App: React.FC = () => {
             onSubmit={handleSubmit}
             isLoading={isLoading}
             disabled={!walletAddress}
+            loadingIsUrl={pendingIsUrl}
           />
 
           {!walletAddress && !error && (
@@ -123,7 +140,9 @@ const App: React.FC = () => {
           Built on GenLayer &middot; Intelligent Contracts &middot; Optimistic
           Democracy Consensus
         </p>
-        <p className="studio-note">Running on Testnet Bradbury (Chain ID 4221)</p>
+        <p className="studio-note">
+          Running on Testnet Bradbury (Chain ID 4221)
+        </p>
       </footer>
     </div>
   );

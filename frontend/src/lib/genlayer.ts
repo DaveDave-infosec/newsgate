@@ -1,7 +1,9 @@
 import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 
-export const CONTRACT_ADDRESS = "0x2F8549b2D7a86cdfE1b90f1Cea556E8729FFD121";
+// IMPORTANT: After deploying the v2 contract on Bradbury, replace this
+// with the new contract address.
+export const CONTRACT_ADDRESS = "0xA4BD3d16C79E8895c92bA4b5Fe5Ad07d67adC7Ce";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ADDR = CONTRACT_ADDRESS as any;
 
@@ -78,6 +80,8 @@ export async function verifyClaim(claim: string): Promise<string> {
   await client.waitForTransactionReceipt({
     hash: txHash,
     status: "ACCEPTED",
+    retries: 60,
+    interval: 5000,
   });
 
   return txHash;
@@ -103,8 +107,30 @@ export async function getLastClaim(): Promise<string> {
   return result as string;
 }
 
+export async function getLastReasoning(): Promise<string> {
+  if (!client) throw new Error("Wallet not connected.");
+  const result = await client.readContract({
+    address: ADDR,
+    functionName: "get_last_reasoning",
+    args: [],
+  });
+  return result as string;
+}
+
+export async function getLastSourceExcerpt(): Promise<string> {
+  if (!client) throw new Error("Wallet not connected.");
+  const result = await client.readContract({
+    address: ADDR,
+    functionName: "get_last_source_excerpt",
+    args: [],
+  });
+  return result as string;
+}
+
 export interface VerdictResult {
   claim: string;
   verdict: string;
+  reasoning?: string;
+  sourceExcerpt?: string;
   txHash?: string;
 }
