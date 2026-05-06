@@ -1,7 +1,7 @@
 import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 
-export const CONTRACT_ADDRESS = "0xA4BD3d16C79E8895c92bA4b5Fe5Ad07d67adC7Ce";
+export const CONTRACT_ADDRESS = "0xDB9910561771Ab1bC87709a851A3D0D2808fF110";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ADDR = CONTRACT_ADDRESS as any;
 
@@ -99,13 +99,17 @@ export function getConnectedAddress(): string | null {
   return connectedAddress;
 }
 
-export async function verifyClaim(claim: string): Promise<string> {
-  if (!client) throw new Error("Wallet not connected. Click Connect Wallet first.");
+export async function verifyClaim(
+  claim: string,
+  sourceText: string = ""
+): Promise<string> {
+  if (!client)
+    throw new Error("Wallet not connected. Click Connect Wallet first.");
 
   const txHash = await client.writeContract({
     address: ADDR,
     functionName: "verify_claim",
-    args: [claim],
+    args: [claim, sourceText],
     value: 0,
   });
 

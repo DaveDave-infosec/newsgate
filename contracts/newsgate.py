@@ -17,44 +17,26 @@ class NewsGate(gl.Contract):
         self.last_source_excerpt = ""
 
     @gl.public.write
-    def verify_claim(self, claim: str) -> typing.Any:
-        is_url = claim.startswith("http://") or claim.startswith("https://")
-        source_text = ""
+    def verify_claim(self, claim: str, source_text: str = "") -> typing.Any:
+        has_source = bool(source_text and source_text.strip())
 
-        if is_url:
-            def fetch_url() -> str:
-                try:
-                    body = gl.nondet.web.render(claim, mode='text')
-                    if not body or len(body.strip()) < 100:
-                        response = gl.nondet.web.get(claim)
-                        body = response.body.decode("utf-8", errors="ignore")
-                except Exception:
-                    response = gl.nondet.web.get(claim)
-                    body = response.body.decode("utf-8", errors="ignore")
-
-                if len(body) > 12000:
-                    body = body[:12000]
-                return body
-
-            source_text = gl.eq_principle.strict_eq(fetch_url)
-
-        if is_url:
+        if has_source:
             prompt = (
-                "You are a careful news fact-checker. Below is the text of an "
-                "article fetched from the URL: " + claim + "\n\n"
-                "ARTICLE TEXT:\n" + source_text + "\n\n"
+                "You are a careful news fact-checker. The user submitted "
+                "this claim or URL: " + claim + "\n\n"
+                "ARTICLE / SOURCE TEXT:\n" + source_text + "\n\n"
                 "Decide whether the article presents factually accurate, "
-                "well-sourced information that a reasonable journalist would "
-                "publish. Respond with EXACTLY one line in this format:\n"
-                "VERDICT|REASONING\n\n"
+                "well-sourced information that a reasonable journalist "
+                "would publish. Respond with EXACTLY one line in this "
+                "format:\nVERDICT|REASONING\n\n"
                 "VERDICT must be one of: VERIFIED, DISPUTED, UNVERIFIABLE.\n"
                 "- VERIFIED if the article appears factual and well-sourced.\n"
                 "- DISPUTED if the article contains misleading, false, or "
                 "heavily biased claims.\n"
-                "- UNVERIFIABLE if the page does not contain enough content "
-                "to judge or you cannot tell.\n"
-                "REASONING must be a short single-sentence explanation, no "
-                "longer than 200 characters, no line breaks."
+                "- UNVERIFIABLE if the source does not contain enough "
+                "content to judge or you cannot tell.\n"
+                "REASONING must be a short single-sentence explanation, "
+                "no longer than 200 characters, no line breaks."
             )
         else:
             prompt = (
@@ -69,8 +51,8 @@ class NewsGate(gl.Contract):
                 "- UNVERIFIABLE if you do not have enough information to "
                 "judge confidently. Use this for very recent events, niche "
                 "topics, or anything you are not sure about.\n"
-                "REASONING must be a short single-sentence explanation, no "
-                "longer than 200 characters, no line breaks."
+                "REASONING must be a short single-sentence explanation, "
+                "no longer than 200 characters, no line breaks."
             )
 
         def leader_fn() -> str:
@@ -99,7 +81,7 @@ class NewsGate(gl.Contract):
             reasoning = "Could not parse a verdict from the LLM response."
 
         excerpt = ""
-        if source_text:
+        if has_source:
             excerpt = source_text[:1500]
 
         self.last_claim = claim

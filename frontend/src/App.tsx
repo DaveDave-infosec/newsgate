@@ -46,17 +46,26 @@ const App: React.FC = () => {
       return;
     }
 
+    const trimmed = claim.trim();
     const isUrl =
-      claim.trim().startsWith("http://") || claim.trim().startsWith("https://");
+      trimmed.startsWith("http://") || trimmed.startsWith("https://");
+
     setPendingIsUrl(isUrl);
     setIsLoading(true);
     setError(null);
     setLatestResult(null);
 
     try {
-      const txHash = await verifyClaim(claim);
+      let sourceText = "";
 
-      // Read state sequentially to stay under Bradbury RPC rate limits.
+      if (isUrl) {
+        const { fetchAndExtract } = await import("./lib/extract-article");
+        const extracted = await fetchAndExtract(trimmed);
+        sourceText = extracted.text;
+      }
+
+      const txHash = await verifyClaim(trimmed, sourceText);
+
       const verdict = await getLastVerdict();
       await new Promise((r) => setTimeout(r, 250));
       const returnedClaim = await getLastClaim();
