@@ -1,11 +1,43 @@
 import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 
-// IMPORTANT: After deploying the v2 contract on Bradbury, replace this
-// with the new contract address.
 export const CONTRACT_ADDRESS = "0xA4BD3d16C79E8895c92bA4b5Fe5Ad07d67adC7Ce";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ADDR = CONTRACT_ADDRESS as any;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  const maxAttempts = 4;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      const e = err as { message?: string };
+      const msg = (e?.message || "").toLowerCase();
+      const isRateLimit =
+        msg.includes("rate limit") ||
+        msg.includes("exceeds defined limit") ||
+        msg.includes("429") ||
+        msg.includes("too many requests");
+
+      if (!isRateLimit || attempt === maxAttempts) {
+        throw err;
+      }
+
+      const backoffMs = 1000 * Math.pow(2, attempt - 1);
+      console.warn(
+        `[${label}] rate limited (attempt ${attempt}/${maxAttempts}), retrying in ${backoffMs}ms`
+      );
+      await sleep(backoffMs);
+    }
+  }
+
+  throw lastError;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let client: any = null;
@@ -89,42 +121,50 @@ export async function verifyClaim(claim: string): Promise<string> {
 
 export async function getLastVerdict(): Promise<string> {
   if (!client) throw new Error("Wallet not connected.");
-  const result = await client.readContract({
-    address: ADDR,
-    functionName: "get_last_verdict",
-    args: [],
-  });
-  return result as string;
+  return withRetry(async () => {
+    const result = await client.readContract({
+      address: ADDR,
+      functionName: "get_last_verdict",
+      args: [],
+    });
+    return result as string;
+  }, "getLastVerdict");
 }
 
 export async function getLastClaim(): Promise<string> {
   if (!client) throw new Error("Wallet not connected.");
-  const result = await client.readContract({
-    address: ADDR,
-    functionName: "get_last_claim",
-    args: [],
-  });
-  return result as string;
+  return withRetry(async () => {
+    const result = await client.readContract({
+      address: ADDR,
+      functionName: "get_last_claim",
+      args: [],
+    });
+    return result as string;
+  }, "getLastClaim");
 }
 
 export async function getLastReasoning(): Promise<string> {
   if (!client) throw new Error("Wallet not connected.");
-  const result = await client.readContract({
-    address: ADDR,
-    functionName: "get_last_reasoning",
-    args: [],
-  });
-  return result as string;
+  return withRetry(async () => {
+    const result = await client.readContract({
+      address: ADDR,
+      functionName: "get_last_reasoning",
+      args: [],
+    });
+    return result as string;
+  }, "getLastReasoning");
 }
 
 export async function getLastSourceExcerpt(): Promise<string> {
   if (!client) throw new Error("Wallet not connected.");
-  const result = await client.readContract({
-    address: ADDR,
-    functionName: "get_last_source_excerpt",
-    args: [],
-  });
-  return result as string;
+  return withRetry(async () => {
+    const result = await client.readContract({
+      address: ADDR,
+      functionName: "get_last_source_excerpt",
+      args: [],
+    });
+    return result as string;
+  }, "getLastSourceExcerpt");
 }
 
 export interface VerdictResult {

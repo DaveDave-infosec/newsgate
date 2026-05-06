@@ -56,13 +56,14 @@ const App: React.FC = () => {
     try {
       const txHash = await verifyClaim(claim);
 
-      const [verdict, returnedClaim, reasoning, sourceExcerpt] =
-        await Promise.all([
-          getLastVerdict(),
-          getLastClaim(),
-          getLastReasoning(),
-          getLastSourceExcerpt(),
-        ]);
+      // Read state sequentially to stay under Bradbury RPC rate limits.
+      const verdict = await getLastVerdict();
+      await new Promise((r) => setTimeout(r, 250));
+      const returnedClaim = await getLastClaim();
+      await new Promise((r) => setTimeout(r, 250));
+      const reasoning = await getLastReasoning();
+      await new Promise((r) => setTimeout(r, 250));
+      const sourceExcerpt = await getLastSourceExcerpt();
 
       setLatestResult({
         claim: returnedClaim,
