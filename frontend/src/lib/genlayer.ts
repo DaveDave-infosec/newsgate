@@ -1,7 +1,7 @@
 import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 
-export const CONTRACT_ADDRESS = "0xDB9910561771Ab1bC87709a851A3D0D2808fF110";
+export const CONTRACT_ADDRESS = "0xDeB288b92fB1260989469F15C377623877574a5B";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ADDR = CONTRACT_ADDRESS as any;
 
